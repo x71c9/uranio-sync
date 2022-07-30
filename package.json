@@ -1,20 +1,21 @@
 {
-  "name": "uranio-sync",
-  "version": "0.0.1",
-  "description": "Command line tool for developing Uranio.",
-  "main": "dist/index.js",
-  "repository": "git+ssh://git@github.com/x71c9/uranio-sync",
-  "author": "x71c9 <108585118+x71c9@users.noreply.github.com>",
-  "private": false,
+	"name": "uranio-sync",
+	"version": "0.0.1",
+	"description": "Command line tool for developing Uranio.",
+	"main": "dist/index.js",
+	"repository": "git+ssh://git@github.com/x71c9/uranio-sync",
+	"author": "x71c9 <108585118+x71c9@users.noreply.github.com>",
+	"private": false,
 	"bin": {
-		"uranio-sync": "dist/scripts/sync.js"
+		"uranio-sync": "dist/index.js"
 	},
 	"scripts": {
 		"build": "yarn tsc -b",
-		"dev:sync": "yarn tsc-watch --onSuccess \"node -r source-map-support ./dist/scripts/sync.js ~/repos/uranio/urn-bld ~/repos/cloned_uranio\""
+		"dev": "yarn tsc-watch --onSuccess \"node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio\""
 	},
 	"devDependencies": {
 		"@types/dateformat": "^5.0.0",
+		"@types/minimist": "^1.2.2",
 		"@types/node": "^18.6.2",
 		"@typescript-eslint/eslint-plugin": "^5.31.0",
 		"@typescript-eslint/parser": "^5.31.0",
