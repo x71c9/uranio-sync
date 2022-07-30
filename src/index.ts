@@ -14,7 +14,6 @@
  * ```
  * uranio-sync <path-to-repo> <path-to-uranio-monorepo>
  * ```
- *
  * @packageDocumentation
  */
 
@@ -47,6 +46,8 @@ export type Repo = 'core' | 'api' | 'trx' | 'adm';
 type Resolve = (v?:unknown) => void;
 type Reject = (err?:Error) => void;
 
+const repos = ['core', 'api', 'trx', 'adm'];
+
 const watch_child_list:WatchProcessObject[] = [];
 
 const child_list:cp.ChildProcessWithoutNullStreams[] = [];
@@ -70,11 +71,6 @@ process.on('SIGINT', function() {
 	}
 });
 
-export function parser(args:string[] | undefined, options?:ParseOptions)
-		:Arguments{
-	return minimist(args, options);
-}
-
 const args = parser(process.argv.slice(2));
 
 if(args._.length < 2){
@@ -92,6 +88,8 @@ _check_if_path_is_correct(uranio_monorepo_path);
 
 const selected_uranio = _find_selected_uranio(repo_path);
 
+const binary_to_paths = _get_binary_paths(selected_uranio);
+
 console.log(`Starting uranio-sync with repository [${repo_path}] ...`);
 
 switch(selected_uranio){
@@ -100,40 +98,34 @@ switch(selected_uranio){
 		_sync_repo('api');
 		_sync_repo('trx');
 		_sync_final_repo('adm');
-		
-		_execute(`cd ${uranio_monorepo_path}/urn-core && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-api && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-trx && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-adm && yarn dev:sync`);
-		
 		break;
 	}
 	case 'trx':{
 		_sync_repo('core');
 		_sync_repo('api');
 		_sync_final_repo('trx');
-		_execute(`cd ${uranio_monorepo_path}/urn-core && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-api && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-trx && yarn dev:sync`);
 		break;
 	}
 	case 'api':{
 		_sync_repo('core');
 		_sync_final_repo('api');
-		_execute(`cd ${uranio_monorepo_path}/urn-core && yarn dev:sync`);
-		_execute(`cd ${uranio_monorepo_path}/urn-api && yarn dev:sync`);
 		break;
 	}
 	case 'core':{
 		_sync_final_repo('core');
-		_execute(`cd ${uranio_monorepo_path}/urn-core && yarn dev:sync`);
 		break;
 	}
+}
+
+function parser(args:string[] | undefined, options?:ParseOptions)
+		:Arguments{
+	return minimist(args, options);
 }
 
 function _sync_final_repo(repo:Repo){
 	return _sync_repo(repo, true)
 }
+
 function _sync_repo(repo:Repo, is_final=false){
 	const node_modules_repo_name = (is_final) ? 'uranio' : `uranio-${repo}`;
 	_watch(
@@ -149,6 +141,7 @@ function _sync_repo(repo:Repo, is_final=false){
 			const print_path = _print_monorepo(_path);
 			const print_to = _print_repo(to);
 			console.log(`Copied file [${print_path}] to [${print_to}]`);
+			_chmod(to);
 		}
 	);
 }
@@ -278,3 +271,23 @@ function _clean_chunk(chunk:string){
 	return plain_text;
 }
 
+function _chmod(to_path:string){
+	if(binary_to_paths.includes(to_path)){
+		_execute(`chmod +x ${to_path}`);
+	}
+}
+
+function _get_binary_paths(selected_uranio:Repo){
+	const binary_to_paths:string[] = [];
+	for(const repo of repos){
+		const node_modules_repo_name = (selected_uranio === repo) ? 'uranio' : `uranio-${repo}`;
+		const json_path = `${uranio_monorepo_path}/urn-${repo}/package.json`;
+		const parsed = JSON.parse(fs.readFileSync(json_path).toString());
+		if(parsed.bin){
+			for(const [_bin_name, bin_path] of Object.entries(parsed.bin)){
+				binary_to_paths.push(`${repo_path}/node_modules/${node_modules_repo_name}/${bin_path as string}`);
+			}
+		}
+	}
+	return binary_to_paths;
+}

@@ -1,5 +1,6 @@
 {
 	"name": "uranio-sync",
+	"license": "UNLICENSED",
 	"version": "0.0.1",
 	"description": "Command line tool for developing Uranio.",
 	"main": "dist/index.js",
@@ -11,7 +12,8 @@
 	},
 	"scripts": {
 		"build": "yarn tsc -b",
-		"dev": "yarn tsc-watch --onSuccess \"node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio\""
+		"dev": "yarn tsc-watch --onSuccess \"node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio -c\"",
+		"sync": "node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio"
 	},
 	"devDependencies": {
 		"@types/dateformat": "^5.0.0",
