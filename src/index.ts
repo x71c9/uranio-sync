@@ -19,6 +19,8 @@
 
 import fs from 'fs';
 
+import path from 'path';
+
 import cp from 'child_process';
 
 import minimist from 'minimist';
@@ -73,6 +75,11 @@ process.on('SIGINT', function() {
 
 const args = parser(process.argv.slice(2));
 
+if(args['h'] === true || args['help'] === true){
+	_print_help();
+	process.exit(0);
+}
+
 if(args._.length < 2){
 	console.error(
 		`Invalid arguments. Run uranio-sync <path-to-repo> <path-to-uranio-monorepo>`
@@ -84,7 +91,7 @@ const repo_path = args._[0].replaceAll('~', process.env.HOME as string);
 const uranio_monorepo_path = args._[1].replaceAll('~', process.env.HOME as string);
 
 _check_if_repo_has_uranio_init(repo_path);
-_check_if_path_is_correct(uranio_monorepo_path);
+_check_if_path_is_uranio_monorepo(uranio_monorepo_path);
 
 const selected_uranio = _find_selected_uranio(repo_path);
 
@@ -157,8 +164,27 @@ function _on_ready(path:string | string[]){
 // 	console.log(_event, _path);
 // }
 
-function _check_if_path_is_correct(_path:string){
-	// TODO
+function _check_if_path_is_uranio_monorepo(_path:string){
+	if(fs.existsSync(_path) === false){
+		console.error(`[INAVLID_PATH] Given path for Uranio monorepo does not exist.`);
+		process.exit(1);
+	}
+	const package_path = path.join(_path, '/package.json');
+	if(fs.existsSync(package_path) === false){
+		console.error(`[INVALID_PATH] Given path for Uranio monorepo is missing package.json.`);
+		process.exit(1);
+	}
+	const content = fs.readFileSync(package_path);
+	try{
+		const parsed = JSON.parse(content.toString());
+		if(typeof parsed.uranio === 'undefined'){
+			console.error(`[NOT_URANIO] Given path for Uranio monorepo is not valid.`);
+			process.exit(1);
+		}
+	}catch(err){
+		console.error(`[JSON_PARSE_FAILED] Invalid package.json from Uranio monorepo.`)
+		process.exit(1);
+	}
 	console.log(`Uranio monorepo found [${_path}].`);
 }
 
@@ -285,9 +311,17 @@ function _get_binary_paths(selected_uranio:Repo){
 		const parsed = JSON.parse(fs.readFileSync(json_path).toString());
 		if(parsed.bin){
 			for(const [_bin_name, bin_path] of Object.entries(parsed.bin)){
-				binary_to_paths.push(`${repo_path}/node_modules/${node_modules_repo_name}/${bin_path as string}`);
+				binary_to_paths.push(
+					`${repo_path}/node_modules/${node_modules_repo_name}/${bin_path as string}`
+				);
 			}
 		}
 	}
 	return binary_to_paths;
+}
+
+function _print_help(){
+	console.log(``);
+	console.log(`usage: uranio-sync <options> <path-to-repo> <path-to-uranio-monorepo>`);
+	console.log(``);
 }

@@ -12,8 +12,10 @@
 	},
 	"scripts": {
 		"build": "yarn tsc -b",
-		"dev": "yarn tsc-watch --onSuccess \"node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio -c\"",
-		"sync": "node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio"
+		"sync": "node -r source-map-support ./dist/index.js ~/repos/uranio/urn-bld ~/repos/uranio",
+		"help": "node -r source-map-support ./dist/index.js --help",
+		"watch": "yarn tsc-watch --onSuccess \"yarn run help\"",
+		"dev": "yarn tsc-watch --onSuccess \"yarn sync\""
 	},
 	"devDependencies": {
 		"@types/dateformat": "^5.0.0",
