@@ -23,6 +23,8 @@ import path from 'path';
 
 import cp from 'child_process';
 
+import dateFormat from 'dateformat';
+
 import minimist from 'minimist';
 
 import chokidar from 'chokidar';
@@ -53,6 +55,10 @@ const repos = ['core', 'api', 'trx', 'adm'];
 const watch_child_list:WatchProcessObject[] = [];
 
 const child_list:cp.ChildProcessWithoutNullStreams[] = [];
+
+const do_not_transfer:string[] = [
+	'dist/client/toml.js'
+];
 
 // const child_outputs:CachedOutput = {};
 
@@ -87,11 +93,14 @@ if(args._.length < 2){
 	process.exit(1);
 }
 
-const repo_path = args._[0].replaceAll('~', process.env.HOME as string);
-const uranio_monorepo_path = args._[1].replaceAll('~', process.env.HOME as string);
+let repo_path = args._[0].replaceAll('~', process.env.HOME as string);
+let uranio_monorepo_path = args._[1].replaceAll('~', process.env.HOME as string);
 
 _check_if_repo_has_uranio_init(repo_path);
 _check_if_path_is_uranio_monorepo(uranio_monorepo_path);
+
+repo_path = path.resolve(repo_path);
+uranio_monorepo_path = path.resolve(uranio_monorepo_path);
 
 const selected_uranio = _find_selected_uranio(repo_path);
 
@@ -140,15 +149,19 @@ function _sync_repo(repo:Repo, is_final=false){
 		`watching ${uranio_monorepo_path}/urn-${repo}/src|dist directories.`,
 		_on_ready,
 		(_event:WatchEvent, _path:string) => {
-			console.log(_event, _path);
+			
+			let time = dateFormat(new Date(), "['T'HH:MM:ss:l]");
+			console.log(time, _event, _path);
 			const splitted_path = _path.split(`urn-${repo}`);
 			const relative_path = splitted_path[1];
 			const to = `${repo_path}/node_modules/${node_modules_repo_name}${relative_path}`;
-			fs.copyFileSync(_path, to);
-			const print_path = _print_monorepo(_path);
-			const print_to = _print_repo(to);
-			console.log(`Copied file [${print_path}] to [${print_to}]`);
-			_chmod(to);
+			if(do_not_transfer.includes(relative_path) === false){
+				fs.copyFileSync(_path, to);
+				const print_path = _print_monorepo(_path);
+				const print_to = _print_repo(to);
+				console.log(time, `Copied file [${print_path}] to [${print_to}]`);
+				_chmod(to);
+			}
 		}
 	);
 }
@@ -235,7 +248,8 @@ function _watch(
 ):void{
 	const watch_child = chokidar.watch(watch_path, {
 		ignoreInitial: true,
-		ignored: ['./**/*.swp']
+		// ignored: ['./**/*.swp']
+		ignored: (p) => path.extname(p) === '.swp'
 	})
 		.on('ready', on_ready(watch_path))
 		.on('all', on_all);

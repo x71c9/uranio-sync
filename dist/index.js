@@ -23,11 +23,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const child_process_1 = __importDefault(require("child_process"));
+const dateformat_1 = __importDefault(require("dateformat"));
 const minimist_1 = __importDefault(require("minimist"));
 const chokidar_1 = __importDefault(require("chokidar"));
 const repos = ['core', 'api', 'trx', 'adm'];
 const watch_child_list = [];
 const child_list = [];
+const do_not_transfer = [
+    'dist/client/toml.js'
+];
 // const child_outputs:CachedOutput = {};
 process.on('SIGINT', function () {
     process.stdout.write("\r--- Caught interrupt signal [watch] ---\n");
@@ -54,10 +58,12 @@ if (args._.length < 2) {
     console.error(`Invalid arguments. Run uranio-sync <path-to-repo> <path-to-uranio-monorepo>`);
     process.exit(1);
 }
-const repo_path = args._[0].replaceAll('~', process.env.HOME);
-const uranio_monorepo_path = args._[1].replaceAll('~', process.env.HOME);
+let repo_path = args._[0].replaceAll('~', process.env.HOME);
+let uranio_monorepo_path = args._[1].replaceAll('~', process.env.HOME);
 _check_if_repo_has_uranio_init(repo_path);
 _check_if_path_is_uranio_monorepo(uranio_monorepo_path);
+repo_path = path_1.default.resolve(repo_path);
+uranio_monorepo_path = path_1.default.resolve(uranio_monorepo_path);
 const selected_uranio = _find_selected_uranio(repo_path);
 const binary_to_paths = _get_binary_paths(selected_uranio);
 // console.log(`Starting uranio-sync with repository [${path.resolve(repo_path)}] ...`);
@@ -94,15 +100,18 @@ function _sync_final_repo(repo) {
 function _sync_repo(repo, is_final = false) {
     const node_modules_repo_name = (is_final) ? 'uranio' : `uranio-${repo}`;
     _watch([`${uranio_monorepo_path}/urn-${repo}/src`, `${uranio_monorepo_path}/urn-${repo}/dist`], `watching ${uranio_monorepo_path}/urn-${repo}/src|dist directories.`, _on_ready, (_event, _path) => {
-        console.log(_event, _path);
+        let time = (0, dateformat_1.default)(new Date(), "['T'HH:MM:ss:l]");
+        console.log(time, _event, _path);
         const splitted_path = _path.split(`urn-${repo}`);
         const relative_path = splitted_path[1];
         const to = `${repo_path}/node_modules/${node_modules_repo_name}${relative_path}`;
-        fs_1.default.copyFileSync(_path, to);
-        const print_path = _print_monorepo(_path);
-        const print_to = _print_repo(to);
-        console.log(`Copied file [${print_path}] to [${print_to}]`);
-        _chmod(to);
+        if (do_not_transfer.includes(relative_path) === false) {
+            fs_1.default.copyFileSync(_path, to);
+            const print_path = _print_monorepo(_path);
+            const print_to = _print_repo(to);
+            console.log(time, `Copied file [${print_path}] to [${print_to}]`);
+            _chmod(to);
+        }
     });
 }
 function _on_ready(path) {
@@ -180,7 +189,8 @@ function _find_selected_uranio(_path) {
 function _watch(watch_path, watch_text, on_ready, on_all) {
     const watch_child = chokidar_1.default.watch(watch_path, {
         ignoreInitial: true,
-        ignored: ['./**/*.swp']
+        // ignored: ['./**/*.swp']
+        ignored: (p) => path_1.default.extname(p) === '.swp'
     })
         .on('ready', on_ready(watch_path))
         .on('all', on_all);
