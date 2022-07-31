@@ -60,7 +60,7 @@ _check_if_repo_has_uranio_init(repo_path);
 _check_if_path_is_uranio_monorepo(uranio_monorepo_path);
 const selected_uranio = _find_selected_uranio(repo_path);
 const binary_to_paths = _get_binary_paths(selected_uranio);
-console.log(`Starting uranio-sync with repository [${repo_path}] ...`);
+// console.log(`Starting uranio-sync with repository [${path.resolve(repo_path)}] ...`);
 switch (selected_uranio) {
     case 'adm': {
         _sync_repo('core');
@@ -109,14 +109,14 @@ function _on_ready(path) {
     return () => {
         const dir_word = (!Array.isArray(path)) ? 'directory' : 'directories';
         let paths = (Array.isArray(path)) ? path.map(p => _print_monorepo(p)) : path;
-        console.log(`Started watching [${paths}] ${dir_word}...`);
+        console.log(`Started watching [${paths}] ${dir_word} ...`);
     };
 }
 // function _on_all(_event:WatchEvent, _path:string){
 // 	console.log(_event, _path);
 // }
 function _check_if_path_is_uranio_monorepo(_path) {
-    if (fs_1.default.existsSync(_path) === false) {
+    if (fs_1.default.statSync(_path).isDirectory() === false) {
         console.error(`[INAVLID_PATH] Given path for Uranio monorepo does not exist.`);
         process.exit(1);
     }
@@ -125,8 +125,8 @@ function _check_if_path_is_uranio_monorepo(_path) {
         console.error(`[INVALID_PATH] Given path for Uranio monorepo is missing package.json.`);
         process.exit(1);
     }
-    const content = fs_1.default.readFileSync(package_path);
     try {
+        const content = fs_1.default.readFileSync(package_path);
         const parsed = JSON.parse(content.toString());
         if (typeof parsed.uranio === 'undefined') {
             console.error(`[NOT_URANIO] Given path for Uranio monorepo is not valid.`);
@@ -137,14 +137,45 @@ function _check_if_path_is_uranio_monorepo(_path) {
         console.error(`[JSON_PARSE_FAILED] Invalid package.json from Uranio monorepo.`);
         process.exit(1);
     }
-    console.log(`Uranio monorepo found [${_path}].`);
+    console.log(`Uranio monorepo found .. [${path_1.default.resolve(_path)}]`);
 }
 function _check_if_repo_has_uranio_init(_path) {
-    // TODO
+    if (fs_1.default.statSync(_path).isDirectory() === false) {
+        console.error(`[INAVLID_PATH] Given path for repo does not exist.`);
+        process.exit(1);
+    }
+    const uranio_folder = path_1.default.join(_path, '/.uranio');
+    if (fs_1.default.statSync(uranio_folder).isDirectory() === false) {
+        console.error(`[INAVLID_REPO] Given repo is not initialized.`);
+        console.error(`Run \`uranio init\` in the root of the repo.`);
+        process.exit(1);
+    }
+    const uranio_json_path = path_1.default.join(uranio_folder, '/.uranio.json');
+    if (fs_1.default.existsSync(uranio_json_path) === false) {
+        console.error(`[INVALID_REPO] Given repo is broken.`);
+        console.error(`Run \`uranio reinit\` in the root of the repo.`);
+        process.exit(1);
+    }
+    console.log(`Repo found ............. [${path_1.default.resolve(_path)}]`);
 }
 function _find_selected_uranio(_path) {
-    // TODO
-    return 'adm';
+    const uranio_folder = path_1.default.join(_path, '/.uranio');
+    const uranio_json_path = path_1.default.join(uranio_folder, '/.uranio.json');
+    try {
+        const content = fs_1.default.readFileSync(uranio_json_path);
+        const parsed = JSON.parse(content.toString());
+        if (typeof parsed.repo === 'undefined') {
+            console.error(`[JSON_PARSE_FAILED] Invalid .uranio.json. Repo is broken.`);
+            console.error(`Run \`uranio reinit\` in the root of the repo.`);
+            process.exit(1);
+        }
+        return parsed.repo;
+    }
+    catch (err) {
+        console.error(`[JSON_PARSE_FAILED] Invalid .uranio.json. Repo is broken.`);
+        console.error(`Run \`uranio reinit\` in the root of the repo.`);
+        process.exit(1);
+    }
 }
 function _watch(watch_path, watch_text, on_ready, on_all) {
     const watch_child = chokidar_1.default.watch(watch_path, {
