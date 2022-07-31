@@ -1,7 +1,7 @@
 {
 	"name": "uranio-sync",
 	"license": "UNLICENSED",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "Command line tool for developing Uranio.",
 	"main": "dist/index.js",
 	"repository": "git+ssh://git@github.com/x71c9/uranio-sync",
