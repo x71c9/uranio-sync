@@ -105,7 +105,13 @@ function _sync_repo(repo, is_final = false) {
         const splitted_path = _path.split(`urn-${repo}`);
         const relative_path = splitted_path[1];
         const to = `${repo_path}/node_modules/${node_modules_repo_name}${relative_path}`;
-        if (do_not_transfer.includes(relative_path) === false) {
+        if (_event === 'unlink') {
+            fs_1.default.unlinkSync(to);
+        }
+        else if (_event === 'unlinkDir') {
+            fs_1.default.rmSync(to, { recursive: true, force: true });
+        }
+        else if (do_not_transfer.includes(relative_path) === false) {
             fs_1.default.copyFileSync(_path, to);
             const print_path = _print_monorepo(_path);
             const print_to = _print_repo(to);
