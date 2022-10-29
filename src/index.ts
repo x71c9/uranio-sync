@@ -18,44 +18,30 @@
  */
 
 import fs from 'fs';
-
 import path from 'path';
-
 import cp from 'child_process';
-
 import dateFormat from 'dateformat';
-
 import minimist from 'minimist';
-
 import chokidar from 'chokidar';
 
 export type Arguments = minimist.ParsedArgs;
-
 export type ParseOptions = minimist.Opts;
-
 export type WatchProcessObject = {
 	child: chokidar.FSWatcher
 	text: string,
 	context: string
 }
-
 export type OnReadyCallback = (path:string | string[]) => () => void
-
 export type OnAllCallback = (event:WatchEvent, path:string) => void;
-
 export type WatchEvent = 'add' | 'addDir' | 'change' | 'unlink' | 'unlinkDir';
-
 export type Repo = 'core' | 'api' | 'trx' | 'adm';
 
 type Resolve = (v?:unknown) => void;
 type Reject = (err?:Error) => void;
 
 const repos = ['core', 'api', 'trx', 'adm'];
-
 const watch_child_list:WatchProcessObject[] = [];
-
 const child_list:cp.ChildProcessWithoutNullStreams[] = [];
-
 const do_not_transfer:string[] = [
 	'dist/client/toml.js'
 ];
